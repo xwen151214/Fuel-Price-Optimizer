@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Fuel Route Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; }
+#form { padding: 12px; background: #222; color: #fff; }
+#form input { padding: 6px; margin-right: 6px; }
+#form button { padding: 6px 12px; }
+#summary { padding: 10px 12px; background: #eee; }
+#map { height: 80vh; }
+#error { padding: 10px 12px; background: #fdd; color: #900; }
+</style>
+</head>
+<body>
+
+<div id="form">
+<form method="get" action="{% url 'get route map' %}">
+<input type="text" name="start_location" placeholder="City, ST" value="{{ start_location }}">
+<input type="text" name="end_location" placeholder="City, ST" value="{{ end_location }}">
+<button type="submit">Plan Route</button>
+</form>
+</div>
+
+{% if error %}
+<div id="error">{{ error }}</div>
+{% endif %}
+
+{% if total_miles %}
+<div id="summary">
+{{ start_location }} to {{ end_location }} — {{ total_miles }} miles, {{ total_gallons }} gallons, ${{ total_fuel_cost }} total fuel cost
+</div>
+{% endif %}
+
+<div id="map"></div>
+
+<script>
+var map = L.map('map').setView([39.5, -98.35], 4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}).addTo(map);
+
+{% if route_json %}
+var route = {{ route_json|safe }};
+var layer = L.geoJSON(route).addTo(map);
+map.fitBounds(layer.getBounds());
+
+var stops = {{ fuel_stops_json|safe }};
+stops.forEach(function(s) {
+    L.marker([s.lat, s.lng])
+        .addTo(map)
+        .bindPopup(s.name + '<br>' + s.city + ', ' + s.state + '<br>$' + s.price + '/gal<br>' + s.gallons + ' gal - $' + s.cost);
+});
+{% endif %}
+</script>
+
+</body>
+</html>
